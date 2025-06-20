@@ -11,7 +11,9 @@ Number = Union[int, float]
 # lists and also visualize them in graphs.
 
 class Vector:
-  def __init__(self, dimension: int, items: list[Number] | tuple[Number, ...]):
+  def __init__(self, items: list[Number] | tuple[Number, ...], dimension: int = -1):
+    if dimension == -1: dimension = len(items)
+    
     if dimension < 2:
       raise ValueError("Dimension must be an integer >= 2 (e.g., 2 for 2D, 3 for 3D)")
     if len(items) != dimension:
@@ -60,14 +62,11 @@ class Vector:
   @staticmethod
   def linear_combination(vectors: list["Vector"], scalars: list[Number]) -> "Vector":
     result = (s * v for s, v in zip(scalars, vectors))
-    return sum(result, Vector(vectors[0].dimension, [0.0] * vectors[0].dimension))
-
-vector = Vector(2, [1, 2])
-vector2 = Vector(2, [3, 4])
+    return sum(result, Vector([0.0] * vectors[0].dimension))
 
 def scalar_multiply(vec: Vector, scalar: Number) -> Vector: 
   result = [x * scalar for x in vec.items]
-  return Vector(vec.dimension, result)
+  return Vector(result)
 
 def dot_product(vec: Vector, vec2: Vector) -> Number:
   if (vec.dimension != vec2.dimension):
@@ -78,13 +77,5 @@ def addition(vec: Vector, vec2: Vector) -> Vector:
   if (vec.dimension != vec2.dimension):
     raise ValueError("Vector dimensions must match")
   result = [x + y for x, y in zip(vec, vec2)]
-  return Vector(vec.dimension, result)
+  return Vector(result)
 
-print(f"Vector 1 - {vector}")
-print(f"Vector 2 - {vector2}")
-
-print(f"Add - {vector + vector2}")
-print(f"Scalar product - {2 * vector}")
-print(f"Dot Product - {vector * vector2}")
-
-print(f"Is vector changed? {vector != Vector(2, [1, 2])}")
