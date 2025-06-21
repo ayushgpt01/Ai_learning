@@ -20,13 +20,30 @@ class Vector:
       raise ValueError(f"Items must be a list or tuple with {dimension} components")
   
     self.items = list(items)
-    self.dimension = dimension
+    self._dimension = dimension
     
-  def __str__(self):
-    return f"{self.dimension}D Vector:{self.items}"
-   
-  def __repr__(self):
-    return self.__str__()
+  @property
+  def dimension(self) -> int:
+    """
+    Returns the dimension of the vector.
+    This is a read-only property.
+    """
+    return self._dimension
+    
+  def __str__(self) -> str:
+      """
+      Returns a human-readable string representation of the Vector.
+      Example: "3D Vector:[1, 2, 3]"
+      """
+      return f"{self.dimension}D Vector:{self.items}"
+
+  def __repr__(self) -> str:
+      """
+      Returns an unambiguous string representation of the Vector,
+      ideally allowing it to be recreated using eval().
+      Example: "Vector([1, 2, 3])" or "Vector((1, 2, 3), dimension=3)"
+      """
+      return f"{self.__class__.__name__}({self.items})"
    
   def __add__(self, other: "Vector") -> "Vector":
     return addition(self, other)
