@@ -46,13 +46,32 @@ class Vector:
       return f"{self.__class__.__name__}({self.items})"
    
   def __add__(self, other: "Vector") -> "Vector":
-    return addition(self, other)
+    if (self.dimension != other.dimension):
+      raise ValueError("Vector dimensions must match")
+    result = [x + y for x, y in zip(self, other)]
+    return Vector(result)
+  
+  def __sub__(self, other: "Vector") -> "Vector":
+    if (self.dimension != other.dimension):
+      raise ValueError("Vector dimensions must match")
+    result = [x - y for x, y in zip(self, other)]
+    return Vector(result)
   
   def __mul__(self, other: "Vector") -> Number:
-    return dot_product(self, other)
+    if (self.dimension != other.dimension):
+      raise ValueError("Vector dimensions must match")
+    return sum(x * y for x, y in zip(self, other))
   
   def __rmul__(self, scalar: Number) -> "Vector":
-    return scalar_multiply(self, scalar)
+    result = [x * scalar for x in self.items]
+    return Vector(result)
+  
+  def __truediv__(self, scalar: Number) -> "Vector":
+    if (scalar == 0):
+      raise ValueError("Division by zero is not allowed")
+    
+    result = [x / scalar for x in self.items]
+    return Vector(result)
   
   def __eq__(self, other: object) -> bool:
     if not isinstance(other, Vector): return False
@@ -80,19 +99,4 @@ class Vector:
   def linear_combination(vectors: list["Vector"], scalars: list[Number]) -> "Vector":
     result = (s * v for s, v in zip(scalars, vectors))
     return sum(result, Vector([0.0] * vectors[0].dimension))
-
-def scalar_multiply(vec: Vector, scalar: Number) -> Vector: 
-  result = [x * scalar for x in vec.items]
-  return Vector(result)
-
-def dot_product(vec: Vector, vec2: Vector) -> Number:
-  if (vec.dimension != vec2.dimension):
-    raise ValueError("Vector dimensions must match")
-  return sum(x * y for x, y in zip(vec, vec2))
-
-def addition(vec: Vector, vec2: Vector) -> Vector:
-  if (vec.dimension != vec2.dimension):
-    raise ValueError("Vector dimensions must match")
-  result = [x + y for x, y in zip(vec, vec2)]
-  return Vector(result)
 

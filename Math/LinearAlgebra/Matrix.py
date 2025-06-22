@@ -1,27 +1,27 @@
-from Vectors import Vector, Number
+from typing import Iterator
+from Vectors import Number, Vector
 
 # Matrix is how we represent the data
 # 
 # Transformation is a function that when applied on a vector returns another vector
 # after moving it in space.
-# 
-# Linear transformation is when metrix is transformed linearly, i.e, after
-# transformation the lines of the plane remain evenly spaced and origin remains same
-# 
-# Mathematically - For a transform L, 
-# L(x) = A(x) where A = [[1,2], [3,4]]
-# 
-# L(V + W) = L(V) + L(W)    -- Additivity, 
-# L(cV) = cL(V)             -- Scalibility
 
 class Matrix:
-    def __init__(self, columns: list[Vector]) -> None:
-        if len(columns) > 0 and any(x.dimension != columns[0].dimension for x in columns):
-            raise ValueError("Matrix cannot have different sized vectors")
-        
-        self.value = columns
-        self._rows = columns[0].dimension if len(columns) > 0 else 0
-        self._cols = len(columns)
+    def __init__(self, columns: list[Vector] | tuple[int, int]) -> None:
+        if isinstance(columns, tuple):
+            rows, cols = columns
+            if rows < 1 or cols < 1:
+                raise ValueError("Matrix dimensions must be positive numbers")
+            self.value = [Vector([0.0] * rows) for _ in range(cols)]
+            self._rows = rows
+            self._cols = cols
+        else:
+            if len(columns) > 0 and any(x.dimension != columns[0].dimension for x in columns):
+                raise ValueError("Matrix cannot have different sized vectors")
+            
+            self.value = columns
+            self._rows = columns[0].dimension if len(columns) > 0 else 0
+            self._cols = len(columns)
         
     @property
     def rows(self):
@@ -38,29 +38,81 @@ class Matrix:
         """
         return Matrix([Vector([1 if x == y else 0 for y in range(size)]) for x in range(size)])
     
+    def __len__(self)-> int:
+        return self.rows
+    
     # addition
     def __add__(self, other: "Matrix") -> "Matrix":
-        return Matrix([])
+        if self.rows != other.rows or self.cols != other.cols:
+            raise ValueError("Matrices must have the same dimensions for addition")
+        
+        result: list[Vector] = []
+        for c_idx in range(self.cols):
+            addedValue = self.value[c_idx] + other.value[c_idx]
+            result.append(addedValue)
+            
+        return Matrix(result)
     
     # subtraction
     def __sub__(self, other: "Matrix") -> "Matrix":
-        return Matrix([])
+        if self.rows != other.rows or self.cols != other.cols:
+            raise ValueError("Matrices must have the same dimensions for addition")
+        
+        result: list[Vector] = []
+        for c_idx in range(self.cols):
+            value = self.value[c_idx] - other.value[c_idx]
+            result.append(value)
+        return Matrix(result)
     
     # Vector or matrix multiplication
-    def __mul__(self, other: "Matrix | Vector") -> "Matrix":
-        return Matrix([])
+    def __mul__(self, other: "Matrix | Vector") -> "Matrix | Vector":
+        if isinstance(other, Matrix):
+            if self.cols != other.rows:
+                raise ValueError(
+                    f"Matrix dimensions incompatible for multiplication: "
+                    f"({self.rows}x{self.cols}) * ({other.rows}x{other.cols})"
+                )
+                
+            result_columns: list[Vector] = []
+            for col_vector in other.value:
+                vec_col_list: list[Number] = []
+                
+                for row_vector in self:
+                    vec_col_list.append(row_vector * col_vector)
+                    
+                result_columns.append(Vector(vec_col_list))
+            return Matrix(result_columns)
+
+        if self.cols != other.dimension:
+            raise ValueError(
+                f"Matrix and Vector dimensions incompatible for multiplication: "
+                f"Matrix cols ({self.cols}) != Vector dimension ({other.dimension})"
+            )
+            
+        result: list[Number] = []        
+        for row_vector in self:
+            result.append(row_vector * other)
+            
+        return Vector(result)
+
     
-    # Scalar multiplication
+    # Scalar multiplication or scaling transformation
     def __rmul__(self, other: Number) -> "Matrix":
-        return Matrix([])
+        return Matrix([other * col for col in self.value ])
     
     # Scalar division
     def __truediv__(self, scalar: Number) -> "Matrix":
-        return Matrix([])
+        return Matrix([ col / scalar for col in self.value ])
     
     # Equality
     def __eq__(self, other: object) -> bool:
-        return False
+        return (
+            isinstance(other, Matrix) and 
+            self.rows == other.rows and 
+            self.cols == other.cols and 
+            self.value == other.value
+        )
+
     
     def __str__(self) -> str:
         """
@@ -103,71 +155,71 @@ class Matrix:
         vector_reprs = [repr(col_vec) for col_vec in self.value]
         return f"Matrix([{', '.join(vector_reprs)}])"
     
+    def is_square(self) -> bool:
+        return self.rows == self.cols
+
+    def copy(self) -> "Matrix":
+        return Matrix([Vector(col.items[:]) for col in self.value])
+
+    
     def __getitem__(self, index: tuple[int, int]) -> Number:
-        if index[0] < 0 or index[0] >= self.cols or index[1] < 0 or index[1] >= self.rows:
+        rowIdx, colIdx = index
+        if rowIdx < 0 or rowIdx >= self.rows or colIdx < 0 or colIdx >= self.cols:
             raise IndexError("Index out of bounds for the matrix")
-        return self.value[index[0]].items[index[1]]
+        return self.value[colIdx].items[rowIdx]
     
     def __setitem__(self, index: tuple[int, int], value: Number) -> None:
-        self.value[index[0]].items[index[1]] = value
+        rowIdx, colIdx = index
+        if rowIdx < 0 or rowIdx >= self.rows or colIdx < 0 or colIdx >= self.cols:
+            raise IndexError("Index out of bounds for the matrix")
+        self.value[colIdx].items[rowIdx] = value
     
     def transpose(self) -> "Matrix":
-        return Matrix([])
+        # Swapped cols and rows for transpose
+        result: Matrix = Matrix((self.cols, self.rows))
+        for r_idx in range(self.rows):
+            for c_idx in range(self.cols):
+                result[c_idx, r_idx] = self[r_idx, c_idx]
+        return result
+    
+    def rows_iter(self) -> Iterator['Vector']:
+        """
+        Yields each row of the matrix as a Vector object.
+        """
+        for r_idx in range(self.rows): # Iterate through each row index
+            current_row_items: list[Number] = []
+            for c_idx in range(self.cols): # For each row, iterate through columns to build the row Vector
+                current_row_items.append(self[r_idx, c_idx])
+            yield Vector(current_row_items) # Yield a new Vector object for the current row
+
+    # Make the Matrix object itself iterable, yielding its rows
+    def __iter__(self) -> Iterator['Vector']:
+        """
+        Allows iteration directly over the Matrix object to get its rows.
+        Example: for row_vector in my_matrix: ...
+        """
+        return self.rows_iter()
     
     # Determinant
     def det(self) -> Number:
-        return 0
+        
+        raise NotImplementedError("Determinant calculation not yet implemented.")
     
     def inverse(self) -> "Matrix":
-        return Matrix([])
+        # For now, don't consider non-square matrices as they require full rank
+        # and other edge cases to be handled
+        if self.rows != self.cols:
+            raise ValueError("Matrix must be square to have an inverse")
+        raise NotImplementedError("Inverse calculation not yet implemented.")
 
-id = Matrix.identity(3)
-print(id[1, 1])
-id[1, 1] = 4
-print(id)
+# Addition
+A = Matrix([Vector([1, 2]), Vector([3, 4])])
+B = Matrix([Vector([5, 6]), Vector([7, 8])])
+assert A + B == Matrix([Vector([6, 8]), Vector([10, 12])])
 
+# Transpose
+assert A.transpose() == Matrix([Vector([1, 3]), Vector([2, 4])])
 
-def linear_fx(vec: Vector):
-    print(f"Input vector: {vec}")
-
-    # Represent the transformation matrix A as a list of row vectors
-    # A = [[1, 2],
-    #      [3, 4]]
-    # So, a[0] is the first row [1, 2]
-    # And a[1] is the second row [3, 4]
-    a: list[Vector] = [Vector([1, 2]), Vector([3, 4])]
-
-    # Check for dimension compatibility:
-    # The number of columns in the matrix (dimension of each row vector in 'a')
-    # must be equal to the dimension of the input vector.
-    if vec.dimension != a[0].dimension:
-        raise ValueError("Vector dimension does not match transformation matrix columns.")
-    if not all(row.dimension == a[0].dimension for row in a):
-         raise ValueError("Rows in the transformation matrix have inconsistent dimensions.")
-
-    result_items: list[Number] = []
-
-    # Iterate through each row of the transformation matrix 'a'
-    for row_vector in a:
-        result_items.append(row_vector * vec)
-
-    result = Vector(result_items)
-    print(f"Output {result}")
-    return result
-
-v = Vector([1, 2])
-w = Vector([2, -1])
-c = 3
-
-# Additive
-s = v + w
-additiveLhs = linear_fx(s)
-additiveRhs = linear_fx(v) + linear_fx(w)
-additive = additiveLhs == additiveRhs
-print(f"lhs = {additiveLhs} rhs = {additiveRhs} additive? {additive}")
-
-# Scalable
-scalabilityLhs = linear_fx(c * v)
-scalabilityRhs = c * linear_fx(v)
-scalable = scalabilityLhs == scalabilityRhs
-print(f"lhs = {scalabilityLhs} rhs = {scalabilityRhs} scalable? {scalable}")
+# Identity
+I = Matrix.identity(2)
+assert I * Vector([3, 4]) == Vector([3, 4])
