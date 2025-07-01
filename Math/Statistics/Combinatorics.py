@@ -1,6 +1,5 @@
 from math import prod, perm, comb
 
-
 # Can also use math.factorial, which is much faster than even this implementation
 def factorial(num : int) -> int:
   if num == 0: return 1
@@ -15,7 +14,7 @@ def factorial(num : int) -> int:
   # because math.prod is implemented in C
   return prod(range(1, num + 1))
 
-def permutation(n: int, r: int):
+def permutation(n: int, r: int) -> int:
   if r > n: return 0
   if n < 0 or r < 0: raise ValueError("n and r must be non-negative integers")
   # return factorial(n) // factorial(n - r)
@@ -30,7 +29,7 @@ def permutation(n: int, r: int):
   # because math.perm is implemented in C
   return perm(n, r)
 
-def combination(n: int, r: int):
+def combination(n: int, r: int) -> int:
   if r > n: return 0
   if n < 0 or r < 0: raise ValueError("n and r must be non-negative integers")
   # return permutation(n, r) // factorial(r)
@@ -43,10 +42,6 @@ def combination(n: int, r: int):
   
   # Combination using math.comb which is more efficient than python factorials
   return comb(n, r)
-
-def binomial_probability(n: int,k :int):
-  # This is the binomial probability of observing k successes in n trials with 𝑝=0.5
-  return combination(n, k) // 2 ** n
 
 assert combination(5, 2) == 10
 assert permutation(5, 2) == 20
